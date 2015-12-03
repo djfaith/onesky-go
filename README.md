@@ -85,11 +85,6 @@ func main() {
 $ go get github.com/SebastianCzoch/onesky-go
 ````
 
-or via [Godep](https://github.com/tools/godep)
-```
-$ godep get github.com/SebastianCzoch/onesky-go
-```
-
 
 ## API
 

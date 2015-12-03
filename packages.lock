@@ -1,0 +1,13 @@
+{
+	"Repository": "github.com/djfaith/onesky-go",
+	"Packages": {
+		"github.com/jarcoal/httpmock": {
+			"Source": "git@github.com:jarcoal/httpmock.git",
+			"Revision": "145b10d659265440f062c31ea15326166bae56ee"
+		},
+    "github.com/stretchr/testify": {
+			"Source": "git@github.com:stretchr/testify.git",
+			"Revision": "089c7181b8c728499929ff09b62d3fdd8df8adff"
+		}
+	}
+}
