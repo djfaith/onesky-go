@@ -143,6 +143,9 @@ func (c *Client) UploadFile(file, fileFormat, locale string) error {
 	v := url.Values{}
 	v.Set("locale", locale)
 	v.Set("file_format", fileFormat)
+	// Deprecate strings that are not included in uploaded file
+	v.Set("is_keeping_all_strings", "false")
+
 	urlStr, err := endpoint.full(c, v)
 	if err != nil {
 		return err
