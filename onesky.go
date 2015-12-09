@@ -38,10 +38,12 @@ type apiEndpoint struct {
 }
 
 var apiEndpoints = map[string]apiEndpoint{
-	"getFile":    apiEndpoint{"projects/%d/translations", "GET"},
-	"postFile":   apiEndpoint{"projects/%d/files", "POST"},
-	"deleteFile": apiEndpoint{"projects/%d/files", "DELETE"},
-	"listFiles":  apiEndpoint{"projects/%d/files", "GET"},
+	"getFile":              apiEndpoint{"projects/%d/translations", "GET"},
+	"getMultilanguageFile": apiEndpoint{"projects/%d/translations/multilingual", "GET"},
+	"postFile":             apiEndpoint{"projects/%d/files", "POST"},
+	"deleteFile":           apiEndpoint{"projects/%d/files", "DELETE"},
+	"listFiles":            apiEndpoint{"projects/%d/files", "GET"},
+	"getImportTasks":       apiEndpoint{"projects/%d/import-tasks", "GET"},
 }
 
 // FileData is a struct which contains informations about file uploaded to OneSky service
@@ -103,13 +105,22 @@ func (c *Client) ListFiles(page, perPage int) ([]FileData, error) {
 
 // DownloadFile is method on Client struct which download form OneSky service choosen file as string
 func (c *Client) DownloadFile(fileName, locale string) (string, error) {
-	endpoint, err := getEndpoint("getFile")
+	var endpointId string
+	v := url.Values{}
+
+	if locale != "" {
+		endpointId = "getFile"
+		v.Set("locale", locale)
+	} else {
+		// Download ALL translations in a single json file
+		endpointId = "getMultilanguageFile"
+		v.Set("file_format", "I18NEXT_MULTILINGUAL_JSON")
+	}
+	endpoint, err := getEndpoint(endpointId)
 	if err != nil {
 		return "", err
 	}
 
-	v := url.Values{}
-	v.Set("locale", locale)
 	v.Set("source_file_name", fileName)
 	urlStr, err := endpoint.full(c, v)
 	if err != nil {
@@ -134,10 +145,10 @@ func (c *Client) DownloadFile(fileName, locale string) (string, error) {
 }
 
 // UploadFile is method on Client struct which upload file to OneSky service
-func (c *Client) UploadFile(file, fileFormat, locale string) error {
+func (c *Client) UploadFile(file, fileFormat, locale string) (string, error) {
 	endpoint, err := getEndpoint("postFile")
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	v := url.Values{}
@@ -148,38 +159,43 @@ func (c *Client) UploadFile(file, fileFormat, locale string) error {
 
 	urlStr, err := endpoint.full(c, v)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
 	f, err := os.Open(file)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer w.Close()
 
 	fw, err := w.CreateFormFile("file", file)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if _, err = io.Copy(fw, f); err != nil {
-		return err
+		return "", err
 	}
 
 	w.Close()
 
 	res, err := makeRequest(endpoint.method, urlStr, &b, w.FormDataContentType())
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if res.StatusCode != http.StatusCreated {
-		return fmt.Errorf("bad status: %s", res.Status)
+		return "", fmt.Errorf("bad status: %s", res.Status)
 	}
 
-	return nil
+	body, err := getResponseBodyAsString(res)
+	if err != nil {
+		return "", err
+	}
+
+	return body, nil
 }
 
 // DeleteFile is method on Client struct which remove file from OneSky service
